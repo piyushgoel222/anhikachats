@@ -842,6 +842,18 @@
           msg.bubble_html = msg.bubble_html.replace(/\/media\//g, 'data/media/');
         }
 
+        // Native Browser Lazy Loading Optimization
+        if (msg.bubble_html) {
+          // Add loading="lazy" to all image tags to load only when in range of viewport
+          if (msg.bubble_html.includes('<img')) {
+            msg.bubble_html = msg.bubble_html.replace(/<img\s+/gi, '<img loading="lazy" ');
+          }
+          // Add preload="none" to all video tags to prevent buffer byte downloading
+          if (msg.bubble_html.includes('<video')) {
+            msg.bubble_html = msg.bubble_html.replace(/<video\s+/gi, '<video preload="none" ');
+          }
+        }
+
         return msg;
       });
 

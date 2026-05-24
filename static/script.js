@@ -186,6 +186,17 @@ function initViewer() {
           // Enrich all messages with their global index
           allMessages = res.messages.map((msg, index) => {
             msg.global_idx = index;
+            
+            // Native Browser Lazy Loading Optimization
+            if (msg.bubble_html) {
+              if (msg.bubble_html.includes('<img')) {
+                msg.bubble_html = msg.bubble_html.replace(/<img\s+/gi, '<img loading="lazy" ');
+              }
+              if (msg.bubble_html.includes('<video')) {
+                msg.bubble_html = msg.bubble_html.replace(/<video\s+/gi, '<video preload="none" ');
+              }
+            }
+            
             return msg;
           });
           filteredMessages = [...allMessages];
