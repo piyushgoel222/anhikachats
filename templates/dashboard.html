@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram DM Export Joiner</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header-bar">
+      <div>
+        <h1 class="title-primary">Instagram DM Export Joiner</h1>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Merge, sort, and view chunked chat exports from your extension.</p>
+      </div>
+      <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Theme">
+        <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px;">
+          <!-- Placeholder SVG, Javascript will populate it based on current theme -->
+        </svg>
+      </button>
+    </header>
+
+    <!-- Upload Card -->
+    <section class="upload-card" id="drag-drop-card">
+      <input type="file" id="file-upload-input" multiple accept=".zip" style="display: none;">
+      <div class="upload-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 48px; height: 48px;">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+      </div>
+      <h2 class="upload-title">Upload ZIP Export Files</h2>
+      <p class="upload-subtitle">Drag and drop your exported ZIP files here, or click to browse</p>
+      <button class="btn btn-secondary">Select Files</button>
+      
+      <!-- Upload progress container -->
+      <div class="upload-progress-container" id="upload-progress" onclick="event.stopPropagation();">
+        <div class="upload-progress-info">
+          <span id="upload-status-text">Uploading files...</span>
+          <span id="upload-percent">0%</span>
+        </div>
+        <div class="upload-progress-bar">
+          <div class="upload-progress-fill" id="upload-progress-fill"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chats List -->
+    <section>
+      <h2 style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Conversations</h2>
+      <div class="chats-grid">
+        {% if chats %}
+          {% for chat in chats %}
+            <article class="chat-card">
+              <div>
+                <h3 class="chat-card-title">{{ chat.chat_name }}</h3>
+                <div class="chat-card-stats">
+                  <span>{{ "{:,}".format(chat.message_count) }} messages</span>
+                  <span>{{ chat.chunk_count }} chunk(s)</span>
+                </div>
+                <div class="chat-card-meta">
+                  <p>{{ chat.date_range }}</p>
+                </div>
+              </div>
+              <a href="{{ url_for('chat_viewer', safe_chat_name=chat.safe_chat_name) }}" class="btn btn-primary" style="width: 100%; text-align: center;">View Chat</a>
+            </article>
+          {% endfor %}
+        {% else %}
+          <div class="no-chats-placeholder">
+            <h3 class="no-chats-title">No conversations parsed yet</h3>
+            <p class="no-chats-desc">Upload your chat export ZIP files above, or copy them into your local <code>data/zips/</code> directory to get started.</p>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

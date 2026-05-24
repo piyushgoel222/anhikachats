@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline Instagram DM Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* --- Premium Dark Theme CSS Styles --- */
+    :root {
+      --bg-primary: #121212;
+      --bg-secondary: #1e1e1e;
+      --bg-active: #2d2d2d;
+      --border-color: #2a2a2a;
+      --text-bright: #ffffff;
+      --text-main: #d4d4d4;
+      --text-muted: #8c8c8c;
+      --accent: #0095f6;
+      --accent-hover: #1877f2;
+      --bubble-sent: #3797f0;
+      --bubble-recv: #262626;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* --- File Picker Drag and Drop Overlay --- */
+    .file-loader-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-primary);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      transition: opacity 0.3s ease;
+    }
+
+    .file-drop-zone {
+      width: 100%;
+      max-width: 600px;
+      border: 2px dashed var(--border-color);
+      background-color: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 60px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .file-drop-zone:hover, .file-drop-zone.dragover {
+      border-color: var(--accent);
+      background-color: var(--bg-active);
+    }
+
+    .drop-zone-icon {
+      font-size: 48px;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+
+    .drop-zone-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-bottom: 10px;
+    }
+
+    .drop-zone-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 25px;
+    }
+
+    .btn-select {
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .btn-select:hover {
+      background-color: var(--accent-hover);
+    }
+
+    /* --- App Layout --- */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+    }
+
+    /* --- Sticky Header --- */
+    .app-header {
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      height: 70px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      z-index: 100;
+    }
+
+    .header-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+
+    .chat-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* --- Search Bar --- */
+    .search-box {
+      position: relative;
+      width: 280px;
+    }
+
+    .search-input {
+      width: 100%;
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 8px 16px 8px 36px;
+      color: var(--text-main);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      fill: var(--text-muted);
+    }
+
+    .search-results-badge {
+      font-size: 11px;
+      background-color: var(--bg-active);
+      color: var(--text-muted);
+      padding: 2px 8px;
+      border-radius: 10px;
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+    }
+
+    .btn-header {
+      background-color: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-header:hover {
+      background-color: var(--bg-active);
+      color: var(--text-bright);
+    }
+
+    /* --- Chat History Viewport --- */
+    .chat-viewport {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      scroll-behavior: auto; /* Toggled dynamically for direct jumps */
+    }
+
+    /* Scrollbar Style */
+    .chat-viewport::-webkit-scrollbar {
+      width: 8px;
+    }
+    .chat-viewport::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .chat-viewport::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+    .chat-viewport::-webkit-scrollbar-thumb:hover {
+      background: var(--bg-active);
+    }
+
+    .messages-container {
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* --- Date Separator --- */
+    .date-separator {
+      text-align: center;
+      margin: 24px 0 16px 0;
+      position: relative;
+    }
+
+    .date-separator span {
+      background-color: var(--bg-primary);
+      padding: 4px 16px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* --- Message Elements --- */
+    .msg {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 3px;
+      max-width: 75%;
+      position: relative;
+    }
+
+    .msg.sent {
+      align-self: flex-end;
+    }
+
+    .msg.recv {
+      align-self: flex-start;
+    }
+
+    /* Centered System Call Events styling for better visibility and high contrast */
+    .msg.system-event {
+      align-self: center !important;
+      max-width: 90% !important;
+      width: auto !important;
+      margin: 10px auto !important;
+      align-items: center !important;
+    }
+
+    .msg.system-event .bubble {
+      background-color: rgba(255, 255, 255, 0.08) !important;
+      color: #ffffff !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border-radius: 16px !important;
+      padding: 8px 18px !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      text-align: center !important;
+      max-width: 100% !important;
+      box-shadow: none !important;
+    }
+
+    .msg.system-event .unsup {
+      color: inherit !important;
+      font-style: normal !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+    }
+
+    .msg.system-event .unsup::before {
+      content: "" !important;
+      display: inline-block !important;
+      width: 14px !important;
+      height: 14px !important;
+      vertical-align: middle !important;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%233b82f6" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>') !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+    }
+
+    /* Sender Metadata */
+    .sender-metadata {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+      padding-left: 4px;
+    }
+
+    .sender-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      background-color: var(--bg-active);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: var(--text-bright);
+    }
+
+    .sender-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    /* Bubble Renders */
+    .bubble {
+      border-radius: 18px;
+      padding: 10px 16px;
+      font-size: 14px;
+      line-height: 1.45;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      cursor: pointer;
+    }
+
+    .sent .bubble {
+      background-color: var(--bubble-sent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .recv .bubble {
+      background-color: var(--bubble-recv);
+      color: var(--text-main);
+      border-bottom-left-radius: 4px;
+    }
+
+    /* Inner bubble media components */
+    .bubble img, .bubble video {
+      max-width: 100%;
+      border-radius: 12px;
+      display: block;
+      margin: 4px 0;
+    }
+
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .media-item {
+      cursor: pointer;
+      border-radius: 10px;
+      overflow: hidden;
+      aspect-ratio: 1;
+      background-color: var(--bg-primary);
+    }
+
+    .media-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      margin: 0;
+      transition: transform 0.2s;
+    }
+
+    .media-item img:hover {
+      transform: scale(1.04);
+    }
+
+    /* Call Events Bubble HTML */
+    .unsup {
+      font-style: italic;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .action {
+      font-size: 12px;
+      color: var(--text-muted);
+      opacity: 0.8;
+    }
+
+    /* Timestamps */
+    .msg-timestamp {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      display: none;
+      padding: 0 6px;
+    }
+
+    .msg-timestamp.visible {
+      display: block;
+    }
+
+    .sent .msg-timestamp {
+      text-align: right;
+    }
+
+    /* Highlight Flashing on jump history */
+    .highlight-flash {
+      animation: flash-pulse 1.8s ease;
+    }
+
+    @keyframes flash-pulse {
+      0% { box-shadow: 0 0 0 0px var(--accent); }
+      30% { box-shadow: 0 0 0 6px var(--accent); }
+      100% { box-shadow: 0 0 0 0px transparent; }
+    }
+
+    /* Jump Context Button in Search */
+    .search-jump-btn {
+      background-color: var(--bg-active);
+      border: 1px solid var(--border-color);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 4px;
+      display: inline-flex;
+      align-items: center;
+      transition: background-color 0.2s;
+    }
+
+    .search-jump-btn:hover {
+      background-color: var(--border-color);
+    }
+
+    /* --- Voice Player Widget --- */
+    .voice-player {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      padding: 10px 14px;
+      border-radius: 16px;
+      width: 250px;
+    }
+
+    .voice-play-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: var(--accent);
+      border: none;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .voice-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .voice-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+
+    .voice-duration {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .voice-progress-container {
+      width: 100%;
+      height: 4px;
+      background-color: var(--border-color);
+      border-radius: 2px;
+      margin-top: 6px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .voice-progress-fill {
+      height: 100%;
+      background-color: var(--accent);
+      border-radius: 2px;
+      width: 0%;
+    }
+
+    /* --- Floating Action Buttons (FAB) --- */
+    .fab-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 500;
+    }
+
+    .btn-fab {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      transition: all 0.2s;
+      outline: none;
+    }
+
+    .btn-fab:hover {
+      background-color: var(--bg-active);
+      color: var(--text-bright);
+      transform: translateY(-2px);
+    }
+
+    /* Floating Toast Notification */
+    .toast-notif {
+      position: fixed;
+      top: 90px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background-color: var(--accent);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 600;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+
+    .toast-notif.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* --- Fullscreen Media Lightbox Modal --- */
+    .lightbox {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(10, 10, 10, 0.95);
+      z-index: 1000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+    }
+
+    .lightbox.active {
+      display: flex;
+    }
+
+    .lightbox-content {
+      position: relative;
+      max-width: 90%;
+      max-height: 90%;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 32px;
+      cursor: pointer;
+    }
+
+    .lightbox-close:hover {
+      color: var(--text-bright);
+    }
+
+    .lightbox-media img, .lightbox-media video {
+      max-width: 100vw;
+      max-height: 85vh;
+      border-radius: 8px;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Standalone File Upload / Welcome Overlay -->
+  <div class="file-loader-overlay" id="loader-overlay">
+    <div class="file-drop-zone" id="drag-drop-zone">
+      <div class="drop-zone-icon">📁</div>
+      <h2 class="drop-zone-title">Select Instagram Chat JSON File</h2>
+      <p class="drop-zone-desc">Select or drag & drop the parsed <strong>Anshika_combined.json</strong> to read chat offline</p>
+      <input type="file" id="file-picker-input" accept=".json" style="display: none;">
+      <button class="btn-select" onclick="document.getElementById('file-picker-input').click()">Select Chat JSON</button>
+    </div>
+  </div>
+
+  <!-- 2. Main Static Site Viewer Container -->
+  <div class="app-container" id="app-wrapper">
+    
+    <!-- Sticky Header -->
+    <header class="app-header">
+      <div class="header-info">
+        <h1 class="chat-title" id="lbl-chat-name">Instagram Chat</h1>
+        <span class="chat-subtitle" id="lbl-chat-sub">Offline Static Viewer</span>
+      </div>
+
+      <div class="header-controls">
+        <!-- Local Search Box -->
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24">
+            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+          </svg>
+          <input type="text" id="inp-search" class="search-input" placeholder="Search in chat...">
+          <span class="search-results-badge" id="lbl-search-count">0</span>
+        </div>
+
+        <!-- Reload / Back Button -->
+        <button class="btn-header" onclick="location.reload()">Change JSON File</button>
+        <button class="btn-header" id="btn-clear-hist">Reset Read History</button>
+      </div>
+    </header>
+
+    <!-- Scrollable Chat Viewport -->
+    <main class="chat-viewport" id="chat-viewport-timeline">
+      <!-- Loading Spinner -->
+      <div id="static-spinner" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; color: var(--text-muted);">
+         <div class="spinner" style="border: 4px solid var(--border-color); border-top: 4px solid var(--accent); border-radius: 50%; width: 36px; height: 36px; animation: spin 1s linear infinite; margin-bottom: 12px;"></div>
+         <style>
+           @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+         </style>
+         <span style="font-size: 14px; font-weight: 500;">Loading Anshika_combined.json...</span>
+      </div>
+
+      <div class="messages-container" id="messages-target-stream">
+        <!-- Rendered nodes will be injected dynamically -->
+      </div>
+    </main>
+
+    <!-- Floating Action Buttons (FAB) -->
+    <div class="fab-container">
+      <button class="btn-fab" id="btn-fab-jump" title="Jump to Last Read Message" style="display: none; background-color: var(--accent); color: white;">
+        📌
+      </button>
+      <button class="btn-fab" id="btn-fab-up" title="Scroll to Top">
+        ▲
+      </button>
+      <button class="btn-fab" id="btn-fab-down" title="Scroll to Bottom">
+        ▼
+      </button>
+    </div>
+
+    <!-- Floating Toast Indicator -->
+    <div class="toast-notif" id="toast-indicator">
+      Returned to last read message.
+    </div>
+
+  </div>
+
+  <!-- Fullscreen Media Lightbox -->
+  <div class="lightbox" id="modal-lightbox">
+    <div class="lightbox-content">
+      <button class="lightbox-close" id="btn-lightbox-close">&times;</button>
+      <div class="lightbox-media" id="media-lightbox-holder">
+        <!-- Active element will load dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- --- Core Application JavaScript Logic --- -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const spinner = document.getElementById('static-spinner');
+
+      // 1. Automatically fetch the pre-joined JSON file we have
+      fetch('data/parsed/Anshika_combined.json')
+        .then(res => {
+          if (!res.ok) throw new Error("Automatic fetch failed");
+          return res.json();
+        })
+        .then(chatData => {
+          if (spinner) spinner.style.display = 'none';
+          initStaticTimeline(chatData);
+        })
+        .catch(err => {
+          console.warn("Could not auto-load local JSON. Showing file picker. Details:", err);
+          if (spinner) spinner.style.display = 'none';
+          
+          // Revert back and display picker overlay so they can select it manually
+          const overlay = document.getElementById('loader-overlay');
+          if (overlay) {
+            overlay.style.display = 'flex';
+            overlay.style.opacity = '1';
+          }
+        });
+
+      // Setup Overlay Drag and Drop Event listeners
+      const dropZone = document.getElementById('drag-drop-zone');
+      const picker = document.getElementById('file-picker-input');
+
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+          loadJSONFile(e.dataTransfer.files[0]);
+        }
+      });
+
+      picker.addEventListener('change', () => {
+        if (picker.files.length > 0) {
+          loadJSONFile(picker.files[0]);
+        }
+      });
+
+      // Reset read history button
+      document.getElementById('btn-clear-hist').addEventListener('click', () => {
+        if (confirm("Are you sure you want to reset your read scroll history?")) {
+          const chatName = window.activeChatName || "instagram_chat";
+          localStorage.removeItem('last_read_idx_' + chatName);
+          alert("Read history reset. Reload the file to apply.");
+        }
+      });
+    });
+
+    // File loading and parsing
+    function loadJSONFile(file) {
+      if (!file.name.endsWith('.json')) {
+        alert('Please select a valid parsed chat JSON file.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const chatData = JSON.parse(e.target.result);
+          initStaticTimeline(chatData);
+        } catch (err) {
+          alert('Failed to parse JSON file:\n' + err.message);
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    // Main Static Timeline Application Initializer
+    function initStaticTimeline(chatData) {
+      // Hide Overlay and expose chat layout
+      document.getElementById('loader-overlay').style.opacity = 0;
+      setTimeout(() => {
+        document.getElementById('loader-overlay').style.display = 'none';
+        document.getElementById('app-wrapper').style.visibility = 'visible';
+      }, 300);
+
+      // Extract and format header attributes
+      const chatName = chatData.chat_name || "Instagram Chat";
+      const safeChatName = chatData.safe_chat_name || "instagram_chat";
+      window.activeChatName = safeChatName;
+      
+      const count = chatData.message_count || (chatData.messages ? chatData.messages.length : 0);
+
+      document.getElementById('lbl-chat-name').textContent = chatName;
+      document.getElementById('lbl-chat-sub').innerHTML = `${count.toLocaleString()} messages &bull; Device-Powered Search &bull; Scroll History`;
+
+      // Extract nodes list
+      const rawMessages = chatData.messages || [];
+      // Enrich with unique index
+      const allMessages = rawMessages.map((msg, idx) => {
+        msg.global_idx = idx;
+        
+        // Rewrite server media routes on the fly to local folders so media files load correctly!
+        // server prefix: "/media/Anshika__/Anshika_combined/"
+        // static prefix: "data/media/Anshika__/Anshika_combined/"
+        if (msg.bubble_html && msg.bubble_html.includes('/media/')) {
+          msg.bubble_html = msg.bubble_html.replace(/\/media\//g, 'data/media/');
+        }
+
+        return msg;
+      });
+
+      // Viewport container controls
+      const viewport = document.getElementById('chat-viewport-timeline');
+      const targetStream = document.getElementById('messages-target-stream');
+      const searchInput = document.getElementById('inp-search');
+      const resultsBadge = document.getElementById('lbl-search-count');
+      
+      const fabUp = document.getElementById('btn-fab-up');
+      const fabDown = document.getElementById('btn-fab-down');
+      const fabJump = document.getElementById('btn-fab-jump');
+
+      // State management
+      let filteredMessages = [...allMessages];
+      let renderedCount = 0;
+      const BATCH_SIZE = 300;
+      let activeDateStr = "";
+
+      // Load read position from localStorage
+      const historyKey = 'last_read_idx_' + safeChatName;
+      const savedReadIdx = localStorage.getItem(historyKey);
+
+      // Perform initial render
+      renderTimeline(true);
+
+      // Scroll observer throttled to remember scroll history position
+      let scrollTimer = null;
+      viewport.addEventListener('scroll', () => {
+        // Trigger infinite scrolling batch loader
+        const triggerPos = viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - 300;
+        if (triggerPos) {
+          renderTimeline(false);
+        }
+
+        // Throttle scroll tracker to 400ms
+        if (scrollTimer !== null) return;
+        scrollTimer = setTimeout(() => {
+          scrollTimer = null;
+          trackLastReadPosition();
+        }, 400);
+      });
+
+      // Set input search handler with debounce
+      let searchTimer = null;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(performLocalSearch, 300);
+      });
+
+      // Attach floating FAB buttons
+      fabUp.onclick = () => viewport.scrollTo({ top: 0, behavior: 'smooth' });
+      fabDown.onclick = () => viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      
+      if (savedReadIdx !== null) {
+        fabJump.style.display = 'flex';
+        fabJump.onclick = () => jumpToReadIndex(parseInt(savedReadIdx));
+      }
+
+      // Timeline renderer
+      function renderTimeline(isInitial = false) {
+        if (renderedCount >= filteredMessages.length) return;
+
+        const start = renderedCount;
+        let end = Math.min(renderedCount + BATCH_SIZE, filteredMessages.length);
+        
+        // If we are loading initially and there is a saved read index, 
+        // we must render up to the saved index to ensure the element exists!
+        if (isInitial && savedReadIdx !== null) {
+          const savedInt = parseInt(savedReadIdx);
+          // Find the index of the saved message in our filtered list
+          const targetIndex = filteredMessages.findIndex(m => m.global_idx === savedInt);
+          if (targetIndex !== -1 && targetIndex > end) {
+            end = Math.min(targetIndex + 50, filteredMessages.length);
+          }
+        }
+
+        const fragment = document.createDocumentFragment();
+        const isSearchMode = searchInput.value.trim() !== "";
+
+        for (let i = start; i < end; i++) {
+          const msg = filteredMessages[i];
+
+          // Add date label separator
+          if (msg.date_str !== activeDateStr) {
+            activeDateStr = msg.date_str;
+            const dateSep = document.createElement('div');
+            dateSep.className = 'date-separator';
+            dateSep.innerHTML = `<span>${activeDateStr}</span>`;
+            fragment.appendChild(dateSep);
+          }
+
+          // Message Card
+          const isSystemEvent = msg.bubble_html && msg.bubble_html.includes('class="unsup"');
+          const msgDiv = document.createElement('div');
+          msgDiv.className = `msg ${isSystemEvent ? 'system-event' : msg.direction}`;
+          msgDiv.setAttribute('id', `msg-card-${msg.global_idx}`);
+          msgDiv.setAttribute('data-idx', msg.global_idx);
+
+          // Sender Metadata
+          let senderHtml = '';
+          if (msg.sender_name && msg.direction === 'recv') {
+            const sameSenderPrev = i > 0 && 
+                                   filteredMessages[i-1].direction === 'recv' && 
+                                   filteredMessages[i-1].sender_name === msg.sender_name &&
+                                   filteredMessages[i-1].date_str === msg.date_str;
+            
+            if (!sameSenderPrev) {
+              let avatarHtml = '';
+              if (msg.sender_pic) {
+                // Adjust profile pic path on the fly
+                let picPath = msg.sender_pic;
+                if (picPath.includes('/media/')) {
+                  picPath = picPath.replace(/\/media\//g, 'data/media/');
+                }
+                avatarHtml = `<img class="sender-avatar" src="${picPath}" alt="">`;
+              } else {
+                const initial = msg.sender_name ? msg.sender_name[0].toUpperCase() : 'U';
+                avatarHtml = `<div class="sender-avatar">${initial}</div>`;
+              }
+              senderHtml = `<div class="sender-metadata">${avatarHtml}<span class="sender-name">${msg.sender_name}</span></div>`;
+            }
+          }
+
+          // Add Search Jump button if viewing filtered list
+          let searchJumpHtml = '';
+          if (isSearchMode) {
+            searchJumpHtml = `
+              <button class="search-jump-btn" data-jump="${msg.global_idx}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 10px; height: 10px; margin-right: 4px;">
+                  <path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/>
+                </svg>Show Context
+              </button>
+            `;
+          }
+
+          msgDiv.innerHTML = `
+            ${senderHtml}
+            ${msg.bubble_html}
+            <div class="msg-timestamp" id="time-lbl-${msg.global_idx}">${msg.time_str}</div>
+            ${searchJumpHtml}
+          `;
+
+          // Bind timestamp toggle on bubble click
+          const bubble = msgDiv.querySelector('.bubble');
+          const timeLbl = msgDiv.querySelector('.msg-timestamp');
+          if (bubble && timeLbl) {
+            bubble.addEventListener('click', () => {
+              timeLbl.classList.toggle('visible');
+            });
+          }
+
+          fragment.appendChild(msgDiv);
+        }
+
+        targetStream.appendChild(fragment);
+        renderedCount = end;
+
+        // Hook jump buttons
+        targetStream.querySelectorAll('.search-jump-btn:not(.bound)').forEach(btn => {
+          btn.classList.add('bound');
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const targetIdx = parseInt(btn.getAttribute('data-jump'));
+            jumpToReadIndex(targetIdx);
+          });
+        });
+
+        // Initialize voice note custom players and lightbox clicks
+        initCustomVoicePlayers();
+        initLightboxTriggers();
+
+        // Perform scroll-to-read-position if loading for first time
+        if (isInitial) {
+          if (savedReadIdx !== null) {
+            // Scroll to saved index smoothly after render layout yields
+            setTimeout(() => {
+              jumpToReadIndex(parseInt(savedReadIdx), 'auto', true);
+            }, 100);
+          } else {
+            // Default to bottom of chat
+            setTimeout(() => {
+              viewport.scrollTop = viewport.scrollHeight;
+            }, 50);
+          }
+        }
+      }
+
+      // Scrolling tracker to record last viewed message to localStorage
+      function trackLastReadPosition() {
+        if (filteredMessages.length !== allMessages.length) return; // Disable history tracking in search filter view
+
+        const cards = targetStream.querySelectorAll('.msg');
+        const viewportTop = viewport.getBoundingClientRect().top;
+
+        // Scan through rendered cards to locate the one visible at top of viewport
+        let lastReadIdx = null;
+
+        for (let card of cards) {
+          const rect = card.getBoundingClientRect();
+          // Find the first card that intersects the top portion of scrollbar window
+          if (rect.bottom >= viewportTop + 20) {
+            lastReadIdx = card.getAttribute('data-idx');
+            break;
+          }
+        }
+
+        if (lastReadIdx !== null) {
+          localStorage.setItem(historyKey, lastReadIdx);
+          // Show FAB jump if it was hidden
+          fabJump.style.display = 'flex';
+          fabJump.onclick = () => jumpToReadIndex(parseInt(lastReadIdx));
+        }
+      }
+
+      // Jump to a specific global index in chat timeline
+      function jumpToReadIndex(targetIdx, behavior = 'smooth', initToast = false) {
+        // If search is active, clear it first to return to main stream context
+        if (searchInput.value.trim() !== "") {
+          searchInput.value = '';
+          filteredMessages = [...allMessages];
+          targetStream.innerHTML = '';
+          renderedCount = 0;
+          activeDateStr = "";
+        }
+
+        // Render batches until targetIdx is included
+        if (targetIdx >= renderedCount) {
+          const limit = Math.min(targetIdx + 60, allMessages.length);
+          renderMessagesUpTo(limit);
+        }
+
+        const targetEl = document.getElementById(`msg-card-${targetIdx}`);
+        if (targetEl) {
+          // Disable observer briefly so scroll jumps do not rewrite index
+          viewport.style.scrollBehavior = behavior;
+          targetEl.scrollIntoView({ block: 'center' });
+          viewport.style.scrollBehavior = 'auto';
+
+          // Apply temporary bubble flash highlight to attract focus
+          const bubble = targetEl.querySelector('.bubble');
+          if (bubble) {
+            bubble.classList.add('highlight-flash');
+            setTimeout(() => bubble.classList.remove('highlight-flash'), 2000);
+          }
+
+          // Expose float toast notices
+          if (initToast) {
+            showToast("Returned to last read message.");
+          } else {
+            showToast(`Jumped to message #${targetIdx}`);
+          }
+        }
+      }
+
+      // Render custom messages up to limit (used during jumps)
+      function renderMessagesUpTo(limit) {
+        const start = renderedCount;
+        const end = Math.min(limit, filteredMessages.length);
+        const fragment = document.createDocumentFragment();
+
+        for (let i = start; i < end; i++) {
+          const msg = filteredMessages[i];
+
+          if (msg.date_str !== activeDateStr) {
+            activeDateStr = msg.date_str;
+            const dateSep = document.createElement('div');
+            dateSep.className = 'date-separator';
+            dateSep.innerHTML = `<span>${activeDateStr}</span>`;
+            fragment.appendChild(dateSep);
+          }
+
+          const isSystemEvent = msg.bubble_html && msg.bubble_html.includes('class="unsup"');
+          const msgDiv = document.createElement('div');
+          msgDiv.className = `msg ${isSystemEvent ? 'system-event' : msg.direction}`;
+          msgDiv.setAttribute('id', `msg-card-${msg.global_idx}`);
+          msgDiv.setAttribute('data-idx', msg.global_idx);
+
+          let senderHtml = '';
+          if (msg.sender_name && msg.direction === 'recv') {
+            const sameSenderPrev = i > 0 && 
+                                   filteredMessages[i-1].direction === 'recv' && 
+                                   filteredMessages[i-1].sender_name === msg.sender_name &&
+                                   filteredMessages[i-1].date_str === msg.date_str;
+            
+            if (!sameSenderPrev) {
+              let avatarHtml = '';
+              if (msg.sender_pic) {
+                let picPath = msg.sender_pic;
+                if (picPath.includes('/media/')) {
+                  picPath = picPath.replace(/\/media\//g, 'data/media/');
+                }
+                avatarHtml = `<img class="sender-avatar" src="${picPath}" alt="">`;
+              } else {
+                const initial = msg.sender_name ? msg.sender_name[0].toUpperCase() : 'U';
+                avatarHtml = `<div class="sender-avatar">${initial}</div>`;
+              }
+              senderHtml = `<div class="sender-metadata">${avatarHtml}<span class="sender-name">${msg.sender_name}</span></div>`;
+            }
+          }
+
+          msgDiv.innerHTML = `
+            ${senderHtml}
+            ${msg.bubble_html}
+            <div class="msg-timestamp" id="time-lbl-${msg.global_idx}">${msg.time_str}</div>
+          `;
+
+          const bubble = msgDiv.querySelector('.bubble');
+          const timeLbl = msgDiv.querySelector('.msg-timestamp');
+          if (bubble && timeLbl) {
+            bubble.addEventListener('click', () => timeLbl.classList.toggle('visible'));
+          }
+
+          fragment.appendChild(msgDiv);
+        }
+
+        targetStream.appendChild(fragment);
+        renderedCount = end;
+        initCustomVoicePlayers();
+        initLightboxTriggers();
+      }
+
+      // Fast Device-Powered client side keyword search
+      function performLocalSearch() {
+        const query = searchInput.value.toLowerCase().trim();
+        targetStream.innerHTML = '';
+        renderedCount = 0;
+        activeDateStr = "";
+
+        if (!query) {
+          filteredMessages = [...allMessages];
+          resultsBadge.style.display = 'none';
+        } else {
+          filteredMessages = allMessages.filter(msg => {
+            const textContent = msg.bubble_html.replace(/<[^>]*>/g, '').toLowerCase();
+            const sender = (msg.sender_name || '').toLowerCase();
+            return textContent.includes(query) || sender.includes(query);
+          });
+          
+          resultsBadge.style.display = 'inline-block';
+          resultsBadge.textContent = filteredMessages.length;
+        }
+
+        // Render search batch
+        renderTimeline(false);
+      }
+
+      // Voice Audio players controllers
+      function initCustomVoicePlayers() {
+        const voicePlayers = targetStream.querySelectorAll('.voice-player:not(.initialized)');
+        voicePlayers.forEach(player => {
+          player.classList.add('initialized');
+          const btn = player.querySelector('.voice-play-btn');
+          const audio = player.querySelector('audio');
+          const playIcon = btn.querySelector('.play-icon');
+          const pauseIcon = btn.querySelector('.pause-icon');
+          const durationLabel = player.querySelector('.voice-duration');
+          const progressFill = player.querySelector('.voice-progress-fill');
+          const progressContainer = player.querySelector('.voice-progress-container');
+
+          // Correct audio path dynamically in static viewer
+          if (audio) {
+            let src = audio.getAttribute('src');
+            if (src && src.includes('/media/')) {
+              audio.setAttribute('src', src.replace(/\/media\//g, 'data/media/'));
+            }
+          }
+
+          audio.addEventListener('loadedmetadata', () => {
+            durationLabel.textContent = formatSec(audio.duration);
+          });
+
+          if (audio.readyState >= 1) {
+            durationLabel.textContent = formatSec(audio.duration);
+          }
+
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            if (audio.paused) {
+              // Pause all other audio
+              document.querySelectorAll('audio').forEach(a => {
+                a.pause();
+                const p = a.closest('.voice-player');
+                if (p) {
+                  p.querySelector('.play-icon').style.display = 'block';
+                  p.querySelector('.pause-icon').style.display = 'none';
+                }
+              });
+              audio.play().then(() => {
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+              });
+            } else {
+              audio.pause();
+              playIcon.style.display = 'block';
+              pauseIcon.style.display = 'none';
+            }
+          };
+
+          audio.addEventListener('timeupdate', () => {
+            const pct = (audio.currentTime / audio.duration) * 100;
+            progressFill.style.width = `${pct}%`;
+            durationLabel.textContent = `${formatSec(audio.currentTime)} / ${formatSec(audio.duration)}`;
+          });
+
+          progressContainer.onclick = (e) => {
+            e.stopPropagation();
+            const rect = progressContainer.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = pct * audio.duration;
+          };
+
+          audio.addEventListener('ended', () => {
+            playIcon.style.display = 'block';
+            pauseIcon.style.display = 'none';
+            progressFill.style.width = '0%';
+            durationLabel.textContent = formatSec(audio.duration);
+          });
+        });
+      }
+
+      function formatSec(sec) {
+        if (isNaN(sec) || !isFinite(sec)) return "0:00";
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+      }
+
+      // Fullscreen Lightbox attachments
+      const lightbox = document.getElementById('modal-lightbox');
+      const lightboxMedia = document.getElementById('media-lightbox-holder');
+      const lightboxClose = document.getElementById('btn-lightbox-close');
+
+      function initLightboxTriggers() {
+        const mediaItems = targetStream.querySelectorAll('.media-item:not(.lightbox-bound)');
+        mediaItems.forEach(item => {
+          item.classList.add('lightbox-bound');
+          item.onclick = (e) => {
+            e.stopPropagation();
+            
+            // Extract media route parameters
+            const onclickAttr = item.getAttribute('onclick');
+            if (onclickAttr) {
+              const match = onclickAttr.match(/openMedia\('([^']+)','([^']+)'\)/);
+              if (match) {
+                let path = match[1];
+                if (path.includes('/media/')) {
+                  path = path.replace(/\/media\//g, 'data/media/');
+                }
+                launchLightbox(path, match[2]);
+                return;
+              }
+            }
+
+            // Fallback image source extractors
+            const img = item.querySelector('img');
+            if (img) {
+              launchLightbox(img.getAttribute('src'), 'image');
+            }
+          };
+        });
+      }
+
+      function launchLightbox(src, type) {
+        lightboxMedia.innerHTML = '';
+        if (type === 'video') {
+          lightboxMedia.innerHTML = `<video src="${src}" controls autoplay style="width:100%; height:100%;"></video>`;
+        } else {
+          lightboxMedia.innerHTML = `<img src="${src}" alt="Media Viewer">`;
+        }
+
+        lightbox.classList.add('active');
+        lightboxClose.onclick = exitLightbox;
+        lightbox.onclick = (e) => {
+          if (e.target === lightbox || e.target.classList.contains('lightbox-content')) {
+            exitLightbox();
+          }
+        };
+        document.addEventListener('keydown', escExit);
+      }
+
+      function exitLightbox() {
+        const video = lightboxMedia.querySelector('video');
+        if (video) video.pause();
+        lightbox.classList.remove('active');
+        document.removeEventListener('keydown', escExit);
+      }
+
+      function escExit(e) {
+        if (e.key === 'Escape') exitLightbox();
+      }
+
+      // Visual float notification launcher
+      function showToast(msg) {
+        const toast = document.getElementById('toast-indicator');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2400);
+      }
+    }
+  </script>
+</body>
+</html>

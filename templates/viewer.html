@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ chat.chat_name }} - Joined Chat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body style="overflow: hidden;">
+  <div class="viewer-layout">
+    
+    <!-- Sticky Header -->
+    <header class="viewer-header">
+      <div class="header-left">
+        <!-- Back Button -->
+        <a href="{{ url_for('dashboard') }}" class="theme-toggle-btn" aria-label="Back to Dashboard" style="text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px; display: block;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </a>
+        <div class="header-info">
+          <h1 class="header-title">{{ chat.chat_name }}</h1>
+          <span class="header-subtitle">{{ "{:,}".format(chat.message_count) }} messages &bull; Joined Chat</span>
+        </div>
+      </div>
+      
+      <div class="header-right">
+        <!-- Search bar -->
+        <div class="search-container">
+          <svg class="search-icon-svg" viewBox="0 0 24 24">
+            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+          </svg>
+          <input type="text" id="search-messages" class="search-input" placeholder="Search in messages...">
+        </div>
+        
+        <!-- Theme toggle -->
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Theme">
+          <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 20px; height: 20px;">
+            <!-- SVG injected by JS -->
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Viewport Container for Messages -->
+    <main class="messages-viewport" id="chat-viewer-viewport" data-chat="{{ chat.safe_chat_name }}">
+      <!-- Loader -->
+      <div class="loader-container" id="loading-indicator">
+        <div class="spinner"></div>
+        <p style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Loading merged timeline...</p>
+      </div>
+
+      <!-- Messages Stream List -->
+      <div class="messages-list" id="messages-list-timeline">
+        <!-- Messages lazy loaded from API will be rendered here -->
+      </div>
+    </main>
+
+    <!-- Fullscreen Lightbox Modal -->
+    <div class="lightbox" id="lb-viewer">
+      <div class="lightbox-content">
+        <button class="lightbox-close" id="lb-close-btn" aria-label="Close Lightbox">&times;</button>
+        <div class="lightbox-media" id="lb-media-container">
+          <!-- Active image or video loaded on click -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
